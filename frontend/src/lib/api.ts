@@ -22,8 +22,9 @@ const USER_KEY = 'expense_tracker_user'
 const DEMO_TX_KEY = 'expense_tracker_demo_tx'
 
 /**
- * Local default hits FastAPI directly.
- * Docker build sets VITE_API_URL=/api so nginx can reverse-proxy to the backend.
+ * - Dev (Vite): defaults to http://localhost:8000
+ * - Unified FastAPI serve / Docker app image: build with VITE_API_URL= (same origin)
+ * - Split nginx image: build with VITE_API_URL=/api
  */
 const API_BASE =
   import.meta.env.VITE_API_URL !== undefined
