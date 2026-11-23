@@ -1,0 +1,80 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: expense-tracker-backend
+    environment:
+      # App reads JWT_SECRET_KEY; SECRET_KEY provided for compose/docs parity
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      # Documented path; runtime SQLite file lives at /app/data/expenses.db
+      DATABASE_URL: sqlite:////app/data/expenses.db
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+    volumes:
+      # Persist SQLite across restarts (host bind mount)
+      - ./backend/data:/app/data
+    ports:
+      - "8000:8000"
+    networks:
+      - expense-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Same-origin via nginx /api/ → backend:8000/
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    container_name: expense-tracker-frontend
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "5173:80"
+    networks:
+      - expense-net
+
+  # Optional: fine-tune from user_corrected rows in SQLite
+  #   docker compose --profile retrain run --rm retrain
+  retrain:
+    profiles: ["retrain"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-production}
+      DATABASE_URL: sqlite:////app/data/expenses.db
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/ml/models:/app/ml/models
+    command: ["python", "scripts/retrain.py"]
+    networks:
+      - expense-net
+
+  # Optional: bootstrap train from CSV (backend/ml/data/transactions.csv)
+  #   docker compose --profile train run --rm train-model
+  train-model:
+    profiles: ["train"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    working_dir: /app/ml
+    volumes:
+      - ./backend/ml/models:/app/ml/models
+      - ./backend/ml/data:/app/ml/data
+    command: ["python", "train_model.py"]
+    networks:
+      - expense-net
+
+networks:
+  expense-net:
+    driver: bridge

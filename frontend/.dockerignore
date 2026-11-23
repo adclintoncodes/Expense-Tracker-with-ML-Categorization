@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+*.local
+.vscode
+.idea
+.DS_Store
+coverage
+.oxlintrc.json
