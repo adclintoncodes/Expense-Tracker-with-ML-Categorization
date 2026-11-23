@@ -21,15 +21,23 @@ An intelligent expense tracker that uses machine learning to automatically categ
 Requires Docker Engine and the Compose plugin.
 
 ```bash
-# From the repository root
+# One container: React SPA + FastAPI + SQLite + ML model
 docker compose up --build
 ```
 
-| Service   | URL                         | Notes                                      |
-|-----------|-----------------------------|--------------------------------------------|
-| Frontend  | http://localhost            | also mapped at http://localhost:5173       |
-| Backend   | http://localhost:8000       | OpenAPI docs at `/docs`                    |
-| API (UI)  | http://localhost/api/...    | nginx proxies `/api/` → `backend:8000/`    |
+Open **http://localhost:8000** — UI and API share the same origin. Docs: `/docs`.
+
+Optional split mode (nginx SPA + separate API):
+
+```bash
+docker compose --profile split up --build
+```
+
+| Mode   | URL                         | Notes                                      |
+|--------|-----------------------------|--------------------------------------------|
+| Unified (default) | http://localhost:8000 | SPA served by FastAPI                      |
+| Split frontend    | http://localhost        | also `:5173`; `/api` → backend             |
+| Split backend     | http://localhost:8000   | API only                                   |
 
 Stop with `Ctrl+C` or `docker compose down`. SQLite data remains in `backend/data/`.
 
